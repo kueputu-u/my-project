@@ -5,6 +5,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RoomImageController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -48,4 +50,22 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::post('/reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('admin.reservations.confirm');
     Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy'])->name('admin.reservations.destroy');
     Route::delete('/admin/reservations/bulk-delete', [ReservationController::class, 'bulkDelete'])->name('admin.reservations.bulkDelete');
+
+    // Room images management
+    Route::get('/rooms/{room}/gallery', [RoomImageController::class, 'index'])->name('admin.rooms.gallery');
+    Route::post('/rooms/{room}/images', [RoomImageController::class, 'store'])->name('admin.rooms.images.store');
+    Route::delete('/images/{roomImage}', [RoomImageController::class, 'destroy'])->name('admin.rooms.images.destroy');
+    Route::post('/images/{roomImage}/featured', [RoomImageController::class, 'setFeatured'])->name('admin.rooms.images.set-featured');
+    Route::post('/rooms/{room}/images/order', [RoomImageController::class, 'updateOrder'])->name('admin.rooms.images.update-order');
 });
+
+    // Payment routes
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/reservations/{reservation}/payment', [PaymentController::class, 'createPayment'])->name('payment.create');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payment.show');
+    Route::get('/payments/{payment}/success', [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payments/{payment}/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+});
+
+    // Midtrans notification endpoint
+    Route::post('/payment/notification', [PaymentController::class, 'handleNotification'])->name('payment.notification');

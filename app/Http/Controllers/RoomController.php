@@ -12,34 +12,77 @@ class RoomController extends Controller
     {
         $query = Room::where('available', true);
 
-        // Filter berdasarkan ketersediaan tanggal
-        if ($request->has(['check_in', 'check_out']) && $request->check_in && $request->check_out) {
+        // Filter by room type
+        if ($request->filled('room_type')) {
+            $query->where('type', $request->room_type);
+        }
+
+        // Filter by price range
+        if ($request->filled('price_range')) {
+            $priceRange = explode('-', $request->price_range);
+            if (count($priceRange) === 2) {
+                $minPrice = (float) $priceRange[0];
+                $maxPrice = (float) $priceRange[1];
+                $query->whereBetween('price', [$minPrice, $maxPrice]);
+            }
+        }
+
+        // Filter by date availability - HANYA jika kedua tanggal diisi
+        if ($request->filled('check_in') && $request->filled('check_out')) {
             $checkIn = $request->check_in;
             $checkOut = $request->check_out;
             
-            // Get rooms that are available for the selected dates
-            $query->whereDoesntHave('reservations', function($q) use ($checkIn, $checkOut) {
-                $q->where(function($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                        ->orWhere(function($query) use ($checkIn, $checkOut) {
-                            $query->where('check_in', '<=', $checkIn)
-                                    ->where('check_out', '>=', $checkOut);
-                        });
-                })
-                ->where('status', 'confirmed'); // Only consider confirmed reservations
-            });
+            // Validasi tanggal
+            try {
+                $checkInDate = \Carbon\Carbon::parse($checkIn);
+                $checkOutDate = \Carbon\Carbon::parse($checkOut);
+                
+                // Hanya proses jika check-out setelah check-in
+                if ($checkOutDate->gt($checkInDate)) {
+                    $query->whereDoesntHave('reservations', function($q) use ($checkIn, $checkOut) {
+                        $q->where(function($query) use ($checkIn, $checkOut) {
+                            $query->whereBetween('check_in', [$checkIn, $checkOut])
+                                ->orWhereBetween('check_out', [$checkIn, $checkOut])
+                                ->orWhere(function($query) use ($checkIn, $checkOut) {
+                                    $query->where('check_in', '<=', $checkIn)
+                                        ->where('check_out', '>=', $checkOut);
+                                });
+                        })
+                        ->whereIn('status', ['confirmed', 'pending']);
+                    });
+                }
+            } catch (\Exception $e) {
+                // Tangani error parsing tanggal
+                // Tetap lanjutkan tanpa filter tanggal
+            }
+        }
+
+        // Sort options
+        $sort = $request->get('sort', 'price_asc');
+        switch ($sort) {
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('type', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('type', 'desc');
+                break;
+            default:
+                $query->orderBy('price', 'asc');
         }
 
         $rooms = $query->get();
 
-        // Pass the search parameters to view to pre-fill the form
         return view('rooms.index', compact('rooms'))
             ->with('checkIn', $request->check_in)
             ->with('checkOut', $request->check_out)
-            ->with('guests', $request->guests);
+            ->with('guests', $request->guests)
+            ->with('roomType', $request->room_type)
+            ->with('priceRange', $request->price_range)
+            ->with('sort', $sort);
     }
-
     public function show(Room $room)
     {
         return view('rooms.show', compact('room'));

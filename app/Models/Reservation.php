@@ -34,4 +34,19 @@ class Reservation extends Model
     {
         return $this->belongsTo(Room::class);
     }
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function isPaid()
+    {
+        return $this->payment && $this->payment->isPaid();
+    }
+
+    public function getPaymentStatusAttribute()
+    {
+        if (!$this->payment) return 'unpaid';
+        return $this->payment->status;
+    }
 }

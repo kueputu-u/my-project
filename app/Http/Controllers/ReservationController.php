@@ -6,6 +6,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\ReservationConfirmed;
 
 class ReservationController extends Controller
 {
@@ -94,6 +95,10 @@ class ReservationController extends Controller
     public function confirm(Reservation $reservation)
     {
         $reservation->update(['status' => 'confirmed']);
+        
+        // Send notification
+        $reservation->user->notify(new ReservationConfirmed($reservation));
+        
         return back()->with('success', 'Reservation confirmed successfully.');
     }
 

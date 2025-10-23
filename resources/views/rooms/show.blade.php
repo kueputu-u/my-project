@@ -7,13 +7,29 @@
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
         <div class="md:flex">
             <div class="md:w-1/2">
-                <div class="h-64 md:h-full bg-gray-300 flex items-center justify-center">
-                    @if($room->image)
-                        <img src="{{ asset('storage/' . $room->image) }}" alt="{{ $room->type }}" class="h-full w-full object-cover">
+                <div class="h-64 md:h-96 bg-gray-300 rounded-lg overflow-hidden mb-4">
+                    @if($room->featured_image_url)
+                        <img src="{{ $room->featured_image_url }}" alt="{{ $room->type }}" 
+                            class="h-full w-full object-cover" id="mainImage">
                     @else
-                        <i class="fas fa-bed text-6xl text-gray-400"></i>
+                        <div class="h-full w-full flex items-center justify-center">
+                            <i class="fas fa-bed text-6xl text-gray-400"></i>
+                        </div>
                     @endif
                 </div>
+                
+                <!-- Thumbnail Gallery -->
+                @if($room->images->count() > 1)
+                <div class="grid grid-cols-4 gap-2">
+                    @foreach($room->images as $image)
+                    <div class="h-20 bg-gray-300 rounded overflow-hidden cursor-pointer hover:opacity-80 transition duration-300"
+                        onclick="document.getElementById('mainImage').src = '{{ $image->image_url }}'">
+                        <img src="{{ $image->image_url }}" alt="{{ $image->caption }}" 
+                            class="h-full w-full object-cover">
+                    </div>
+                    @endforeach
+                </div>
+                @endif
             </div>
             <div class="md:w-1/2 p-8">
                 <div class="flex justify-between items-start mb-4">
